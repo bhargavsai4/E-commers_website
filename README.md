@@ -1,163 +1,199 @@
-
-🛒 ShopHub — Full E-Commerce Web Application
-
-A complete, modern, and responsive E-Commerce platform built using HTML, CSS, and Vanilla JavaScript with a fully functional Admin Panel, Authentication, Cart System, and Order Management — all running without any backend (powered by an in-browser database simulation).
-
-This project is inspired by the UI/UX and architecture style of a Task Manager app and transformed into a fully interactive e-commerce system.
-
-🚀 Features
-👥 User Authentication
-
-Login & Registration system
-
-Session handling using sessionStorage
-
-Built-in demo credentials (Admin & Customer)
-
-🛍️ Product Management
-
-Dynamic product grid
-
-Product cards with name, description, stock, price
-
-Add-to-cart button
-
-Product categories & icons
-
-Beautiful hover animations
-
-🛒 Shopping Cart
-
-Add/Remove items
-
-Change quantity
-
-Automatic total calculation
-
-Cart summary with subtotal, shipping, total
-
-Empty cart page with action button
-
-📦 Orders & Checkout
-
-Simple checkout (demo)
-
-Order records stored in simulated DB
-
-Customer order history page
-
-Product breakdown by quantity & total price
-
-🛠️ Admin Dashboard
-
-Admin-only access
-
-Analytics:
-
-Total Products
-
-Total Orders
-
-Total Revenue
-
-Total Customers
-
-Recent orders table
-
-Update order statuses (Pending, Processing, Completed, Cancelled)
-
-💾 In-Browser Database Simulation
-
-All information is stored inside a JavaScript object (DB) with:
-
-Users
-
-Products
-
-Orders
-
-✔ No backend required
-✔ Great for learning
-✔ Fully upgradable to Node, PHP, or Firebase
-
-🎨 User Interface & Styling
-
-The UI is built to be:
-
-Clean & modern
-
-Fully responsive
-
-Lightweight
-
-Professionally structured
-
-Easy to customize (theme variables at the top of CSS)
-
-🧱 Technologies Used
-
-HTML5
-
-CSS3 (modern styling, grids, cards, UI components)
-
-JavaScript (ES6+)
-
-Session Storage for login/cart persistence
-
-No frameworks
-
-📁 Project Structure
-root/
-│── index.html            # Main single-page application
-│── css/style.css         # Complete UI styling
-│── /images/              # Product icons/assets
-│── README.md             # GitHub documentation
-
-🎮 Demo Credentials
-Admin
-Email: admin@shop.com
-Password: admin123
-
-Customer
-Email: customer@shop.com
-Password: customer123
-
-🧪 How to Run
-
-Simply open:
-
-index.html
-
-
-in any browser — no setup needed.
-
-🧩 Planned Enhancements
-
-Backend integration (Node.js / Express / MongoDB)
-
-JWT authentication
-
-Product image upload system
-
-Search, filters, and pagination
-
-Real payment gateway (Stripe / Razorpay)
-
-Real-time inventory updates
-
-Separate Admin CRUD panel
-
-❤️ Contributions
-
-Contributions are always welcome!
-Feel free to:
-
-Create an issue
-
-Submit a pull request
-
-Suggest new features
-
-📜 License
-
-This project is open-source and free to use for learning or personal projects.
+# ShopHub - E-Commerce Platform
+
+A full-stack e-commerce platform built with PHP, MySQL, HTML, and CSS. ShopHub provides a complete shopping experience with dedicated customer and admin modules, featuring secure authentication, role-based access control, and a responsive user interface.
+
+## 🎯 Project Overview
+
+ShopHub is a comprehensive e-commerce solution designed to manage online retail operations efficiently. The platform separates concerns between customer-facing features and administrative controls, ensuring a seamless experience for both shoppers and store managers.
+
+## ✨ Features
+
+### Customer Module
+- **User Authentication**: Secure registration and login with session management
+- **Product Browsing**: Browse products with real-time stock information
+- **Shopping Cart**: Add, update, and remove products from cart
+- **Order Management**: Place orders and track order history
+- **User Profile**: View account details and order information
+- **Responsive Design**: Optimized for desktop and mobile devices
+
+### Admin Module
+- **Dashboard**: Real-time analytics showing key metrics
+  - Total products
+  - Total orders
+  - Revenue overview
+  - Customer count
+- **Order Management**: View and update order statuses
+- **User Management**: Manage customer accounts
+- **Product Management**: Add, edit, and remove products
+- **Inventory Control**: Monitor stock levels
+
+### Security Features
+- **Secure Authentication**: Encrypted password handling and session validation
+- **Role-Based Access Control (RBAC)**: Different access levels for customers and admins
+- **Session Management**: Secure session handling with automatic timeouts
+- **Input Validation**: Protection against SQL injection and XSS attacks
+
+## 🛠️ Tech Stack
+
+| Component | Technology |
+|-----------|-----------|
+| Frontend | HTML5, CSS3 |
+| Backend | PHP |
+| Database | MySQL |
+| Session Management | PHP Sessions |
+| Authentication | Session-based |
+
+## 📊 Database Schema
+
+### Tables
+- **users**: Store customer and admin accounts
+- **products**: Product catalog with pricing and stock
+- **orders**: Customer orders and transaction history
+- **order_items**: Individual items in each order
+- **carts**: Shopping cart items (session-based)
+
+### Relationships
+- One-to-Many: Users → Orders
+- One-to-Many: Orders → Order Items
+- Many-to-One: Order Items → Products
+
+## 🚀 Getting Started
+
+### Prerequisites
+- PHP 7.0+
+- MySQL 5.7+
+- Web Server (Apache/Nginx)
+
+### Installation
+
+1. **Clone the Repository**
+   ```bash
+   git clone https://github.com/yourusername/shophub.git
+   cd shophub
+   ```
+
+2. **Database Setup**
+   - Create a new MySQL database
+   - Import the provided SQL schema file
+   ```sql
+   mysql -u root -p your_database < database.sql
+   ```
+
+3. **Configuration**
+   - Update database connection details in `config/database.php`
+   - Configure email settings for notifications (optional)
+
+4. **Deploy**
+   - Place files in your web server's root directory
+   - Access the application via `http://localhost/shophub`
+
+### Demo Credentials
+
+**Admin Account**
+- Email: `admin@shophub.com`
+- Password: `admin123`
+
+**Customer Account**
+- Email: `customer@shophub.com`
+- Password: `customer123`
+
+## 📁 Project Structure
+
+```
+shophub/
+├── config/
+│   ├── database.php
+│   └── config.php
+├── admin/
+│   ├── dashboard.php
+│   ├── orders.php
+│   ├── products.php
+│   └── users.php
+├── customer/
+│   ├── browse.php
+│   ├── cart.php
+│   ├── checkout.php
+│   └── orders.php
+├── auth/
+│   ├── login.php
+│   ├── register.php
+│   └── logout.php
+├── css/
+│   └── style.css
+├── js/
+│   └── main.js
+├── includes/
+│   ├── header.php
+│   ├── footer.php
+│   └── functions.php
+├── database/
+│   └── schema.sql
+└── index.php
+```
+
+## 🔐 Security Considerations
+
+- **Password Security**: Passwords are hashed using `password_hash()` with bcrypt
+- **SQL Injection Prevention**: Prepared statements with parameterized queries
+- **XSS Protection**: Input sanitization and output encoding
+- **CSRF Protection**: Token-based form validation
+- **Session Security**: HTTPOnly and Secure flags on cookies
+
+## 🎨 User Interface
+
+- **Clean and Intuitive**: Easy navigation for both customers and admins
+- **Responsive Design**: Works seamlessly on desktop, tablet, and mobile
+- **Accessible**: WCAG 2.1 AA compliance standards
+- **Fast Performance**: Optimized CSS and minimal JavaScript
+
+## 📈 Features Roadmap
+
+- [ ] Payment Gateway Integration (Stripe, PayPal)
+- [ ] Email Notifications (Order confirmations, shipping updates)
+- [ ] Advanced Search Filters
+- [ ] Product Reviews and Ratings
+- [ ] Wishlist Functionality
+- [ ] Promotional Codes and Discounts
+- [ ] Analytics Dashboard Enhancements
+- [ ] Multiple User Roles (Seller, Warehouse Manager)
+
+## 🐛 Known Issues & Limitations
+
+- Cart is session-based (clears on logout)
+- No payment processing yet (manual payment handling)
+- Email notifications not implemented
+- Limited product filtering options
+
+## 🤝 Contributing
+
+Contributions are welcome! To contribute:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📝 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 👤 Author
+
+**Your Name**
+- GitHub: [@yourusername](https://github.com/yourusername)
+- Email: your.email@example.com
+
+## 🙏 Acknowledgments
+
+- Thanks to the PHP community for resources and best practices
+- Inspired by popular e-commerce platforms
+- Special thanks to contributors and testers
+
+## 📞 Support
+
+For support, email support@shophub.com or open an issue on GitHub.
+
+---
+
+**Made with ❤️ by Ch Bhargav Sai**
