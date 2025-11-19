@@ -72,18 +72,11 @@ ShopHub is a comprehensive e-commerce solution designed to manage online retail 
    cd shophub
    ```
 
-2. **Database Setup**
-   - Create a new MySQL database
-   - Import the provided SQL schema file
-   ```sql
-   mysql -u root -p your_database < database.sql
-   ```
-
-3. **Configuration**
+2. **Configuration**
    - Update database connection details in `config/database.php`
    - Configure email settings for notifications (optional)
 
-4. **Deploy**
+3. **Deploy**
    - Place files in your web server's root directory
    - Access the application via `http://localhost/shophub`
 
