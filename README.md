@@ -97,39 +97,8 @@ ShopHub is a comprehensive e-commerce solution designed to manage online retail 
 - Email: `customer@shophub.com`
 - Password: `customer123`
 
-## 📁 Project Structure
 
-```
-shophub/
-├── config/
-│   ├── database.php
-│   └── config.php
-├── admin/
-│   ├── dashboard.php
-│   ├── orders.php
-│   ├── products.php
-│   └── users.php
-├── customer/
-│   ├── browse.php
-│   ├── cart.php
-│   ├── checkout.php
-│   └── orders.php
-├── auth/
-│   ├── login.php
-│   ├── register.php
-│   └── logout.php
-├── css/
-│   └── style.css
-├── js/
-│   └── main.js
-├── includes/
-│   ├── header.php
-│   ├── footer.php
-│   └── functions.php
-├── database/
-│   └── schema.sql
-└── index.php
-```
+
 
 ## 🔐 Security Considerations
 
