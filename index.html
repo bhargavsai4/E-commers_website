@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Commerce Platform</title>
+    <style>
+        :root {
+            --color-primary: #2563eb;
+            --color-primary-hover: #1d4ed8;
+            --color-primary-active: #1e40af;
+            --color-success: #10b981;
+            --color-danger: #ef4444;
+            --color-warning: #f59e0b;
+            --color-bg: #f9fafb;
+            --color-surface: #ffffff;
+            --color-text: #111827;
+            --color-text-secondary: #6b7280;
+            --color-border: #e5e7eb;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--color-bg);
+            color: var(--color-text);
+            line-height: 1.6;
+        }
+
+        /* Navigation */
+        .navbar {
+            background: var(--color-surface);
+            box-shadow: var(--shadow-sm);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .navbar-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--color-primary);
+        }
+
+        .navbar-menu {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .navbar-link {
+            color: var(--color-text);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .navbar-link:hover {
+            color: var(--color-primary);
+        }
+
+        .cart-badge {
+            position: relative;
+        }
+
+        .cart-count {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: var(--color-danger);
+            color: white;
+            font-size: 0.75rem;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        /* Container */
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+
+        /* Auth Forms */
+        .auth-container {
+            max-width: 400px;
+            margin: 4rem auto;
+            padding: 2rem;
+            background: var(--color-surface);
+            border-radius: 12px;
+            box-shadow: var(--shadow-md);
+        }
+
+        .auth-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--color-text);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            font-size: 1rem;
+            background: white;
+            cursor: pointer;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: var(--color-primary);
+            color: white;
+            width: 100%;
+        }
+
+        .btn-primary:hover {
+            background: var(--color-primary-hover);
+        }
+
+        .btn-success {
+            background: var(--color-success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-danger {
+            background: var(--color-danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-secondary {
+            background: var(--color-border);
+            color: var(--color-text);
+        }
+
+        .btn-secondary:hover {
+            background: #d1d5db;
+        }
+
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+
+        .auth-footer {
+            text-align: center;
+            margin-top: 1.5rem;
+            color: var(--color-text-secondary);
+        }
+
+        .auth-footer a {
+            color: var(--color-primary);
+            text-decoration: none;
+        }
+
+        /* Products Grid */
+        .products-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .search-bar {
+            display: flex;
+            gap: 1rem;
+            flex: 1;
+            max-width: 600px;
+        }
+
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .product-card {
+            background: var(--color-surface);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .product-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .product-image {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 3rem;
+        }
+
+        .product-body {
+            padding: 1.25rem;
+        }
+
+        .product-name {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .product-description {
+            color: var(--color-text-secondary);
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+        }
+
+        .product-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .product-price {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--color-primary);
+        }
+
+        .product-stock {
+            font-size: 0.875rem;
+            color: var(--color-text-secondary);
+        }
+
+        /* Cart */
+        .cart-items {
+            background: var(--color-surface);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .cart-item {
+            display: flex;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .cart-item:last-child {
+            border-bottom: none;
+        }
+
+        .cart-item-image {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2rem;
+            flex-shrink: 0;
+        }
+
+        .cart-item-details {
+            flex: 1;
+        }
+
+        .cart-item-name {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .cart-item-price {
+            color: var(--color-primary);
+            font-weight: 600;
+        }
+
+        .cart-item-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .quantity-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .quantity-btn {
+            width: 32px;
+            height: 32px;
+            border: 1px solid var(--color-border);
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .quantity-btn:hover {
+            background: var(--color-bg);
+        }
+
+        .quantity-display {
+            min-width: 40px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .cart-summary {
+            background: var(--color-surface);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .summary-row:last-child {
+            border-bottom: none;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--color-primary);
+        }
+
+        /* Admin Dashboard */
+        .admin-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--color-surface);
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .stat-label {
+            color: var(--color-text-secondary);
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--color-primary);
+        }
+
+        .admin-section {
+            background: var(--color-surface);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Tables */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        th {
+            font-weight: 600;
+            color: var(--color-text-secondary);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .status-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-processing {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .status-completed {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-cancelled {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        /* Messages */
+        .message {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .message-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #6ee7b7;
+        }
+
+        .message-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--color-text-secondary);
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .navbar-menu {
+                gap: 1rem;
+                font-size: 0.875rem;
+            }
+
+            .products-grid {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                gap: 1rem;
+            }
+
+            .cart-item {
+                flex-direction: column;
+            }
+
+            .search-bar {
+                flex-direction: column;
+                max-width: 100%;
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <div class="navbar-brand">🛒 ShopHub</div>
+            <div class="navbar-menu" id="navMenu">
+                <!-- Dynamic navigation will be inserted here -->
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Container -->
+    <div id="appContent"></div>
+
+    <script>
+        // Database Simulation (In production, this would be server-side PHP/MySQL)
+        const DB = {
+            users: [
+                { id: 1, email: 'admin@shop.com', password: 'admin123', name: 'Admin User', role: 'admin' },
+                { id: 2, email: 'customer@shop.com', password: 'customer123', name: 'John Doe', role: 'customer' }
+            ],
+            products: [
+                { id: 1, name: 'Wireless Headphones', description: 'Premium noise-cancelling headphones', price: 299.99, stock: 50, category: 'Electronics', icon: '🎧' },
+                { id: 2, name: 'Smart Watch', description: 'Fitness tracking smartwatch', price: 199.99, stock: 30, category: 'Electronics', icon: '⌚' },
+                { id: 3, name: 'Laptop Backpack', description: 'Water-resistant laptop backpack', price: 79.99, stock: 100, category: 'Accessories', icon: '🎒' },
+                { id: 4, name: 'USB-C Hub', description: 'Multi-port USB-C adapter', price: 49.99, stock: 75, category: 'Accessories', icon: '🔌' },
+                { id: 5, name: 'Mechanical Keyboard', description: 'RGB mechanical gaming keyboard', price: 149.99, stock: 45, category: 'Electronics', icon: '⌨️' },
+                { id: 6, name: 'Wireless Mouse', description: 'Ergonomic wireless mouse', price: 59.99, stock: 60, category: 'Electronics', icon: '🖱️' }
+            ],
+            orders: [
+                { id: 1, userId: 2, items: [{ productId: 1, quantity: 1, price: 299.99 }], total: 299.99, status: 'completed', date: '2025-11-15' },
+                { id: 2, userId: 2, items: [{ productId: 3, quantity: 2, price: 79.99 }], total: 159.98, status: 'processing', date: '2025-11-18' }
+            ],
+            nextOrderId: 3
+        };
+
+        // Session Management
+        class Session {
+            static set(key, value) {
+                sessionStorage.setItem(key, JSON.stringify(value));
+            }
+
+            static get(key) {
+                const item = sessionStorage.getItem(key);
+                return item ? JSON.parse(item) : null;
+            }
+
+            static remove(key) {
+                sessionStorage.removeItem(key);
+            }
+
+            static clear() {
+                sessionStorage.clear();
+            }
+        }
+
+        // Authentication
+        class Auth {
+            static login(email, password) {
+                const user = DB.users.find(u => u.email === email && u.password === password);
+                if (user) {
+                    const userSession = { id: user.id, email: user.email, name: user.name, role: user.role };
+                    Session.set('user', userSession);
+                    return { success: true, user: userSession };
+                }
+                return { success: false, message: 'Invalid credentials' };
+            }
+
+            static register(email, password, name) {
+                if (DB.users.find(u => u.email === email)) {
+                    return { success: false, message: 'Email already exists' };
+                }
+                const newUser = {
+                    id: DB.users.length + 1,
+                    email,
+                    password,
+                    name,
+                    role: 'customer'
+                };
+                DB.users.push(newUser);
+                return { success: true };
+            }
+
+            static logout() {
+                Session.clear();
+                App.render();
+            }
+
+            static getCurrentUser() {
+                return Session.get('user');
+            }
+
+            static isAdmin() {
+                const user = this.getCurrentUser();
+                return user && user.role === 'admin';
+            }
+        }
+
+        // Cart Management
+        class Cart {
+            static getCart() {
+                return Session.get('cart') || [];
+            }
+
+            static addToCart(productId) {
+                const cart = this.getCart();
+                const existingItem = cart.find(item => item.productId === productId);
+                
+                if (existingItem) {
+                    existingItem.quantity++;
+                } else {
+                    cart.push({ productId, quantity: 1 });
+                }
+                
+                Session.set('cart', cart);
+                App.updateCartBadge();
+                return { success: true, message: 'Added to cart' };
+            }
+
+            static updateQuantity(productId, quantity) {
+                const cart = this.getCart();
+                const item = cart.find(item => item.productId === productId);
+                
+                if (item) {
+                    if (quantity <= 0) {
+                        this.removeFromCart(productId);
+                    } else {
+                        item.quantity = quantity;
+                        Session.set('cart', cart);
+                    }
+                }
+                App.updateCartBadge();
+            }
+
+            static removeFromCart(productId) {
+                let cart = this.getCart();
+                cart = cart.filter(item => item.productId !== productId);
+                Session.set('cart', cart);
+                App.updateCartBadge();
+            }
+
+            static clearCart() {
+                Session.remove('cart');
+                App.updateCartBadge();
+            }
+
+            static getTotal() {
+                const cart = this.getCart();
+                return cart.reduce((total, item) => {
+                    const product = DB.products.find(p => p.id === item.productId);
+                    return total + (product ? product.price * item.quantity : 0);
+                }, 0);
+            }
+
+            static getItemCount() {
+                const cart = this.getCart();
+                return cart.reduce((count, item) => count + item.quantity, 0);
+            }
+        }
+
+        // Main Application
+        class App {
+            static init() {
+                this.render();
+            }
+
+            static render() {
+                const user = Auth.getCurrentUser();
+                this.renderNav(user);
+
+                if (!user) {
+                    this.renderLoginPage();
+                } else if (user.role === 'admin') {
+                    this.renderAdminDashboard();
+                } else {
+                    const path = window.location.hash.slice(1) || 'products';
+                    this.renderCustomerPage(path);
+                }
+            }
+
+            static renderNav(user) {
+                const navMenu = document.getElementById('navMenu');
+                
+                if (!user) {
+                    navMenu.innerHTML = '';
+                } else if (user.role === 'admin') {
+                    navMenu.innerHTML = `
+                        <a href="#dashboard" class="navbar-link" onclick="App.navigate('dashboard')">Dashboard</a>
+                        <a href="#products" class="navbar-link" onclick="App.navigate('products')">Products</a>
+                        <a href="#orders" class="navbar-link" onclick="App.navigate('orders')">Orders</a>
+                        <a href="#users" class="navbar-link" onclick="App.navigate('users')">Users</a>
+                        <a href="#logout" class="navbar-link" onclick="Auth.logout()">Logout (${user.name})</a>
+                    `;
+                } else {
+                    navMenu.innerHTML = `
+                        <a href="#products" class="navbar-link" onclick="App.navigate('products')">Products</a>
+                        <a href="#orders" class="navbar-link" onclick="App.navigate('orders')">My Orders</a>
+                        <a href="#cart" class="navbar-link cart-badge" onclick="App.navigate('cart')">
+                            🛒 Cart
+                            <span class="cart-count" id="cartCount">0</span>
+                        </a>
+                        <a href="#logout" class="navbar-link" onclick="Auth.logout()">Logout (${user.name})</a>
+                    `;
+                    this.updateCartBadge();
+                }
+            }
+
+            static updateCartBadge() {
+                const cartCount = document.getElementById('cartCount');
+                if (cartCount) {
+                    const count = Cart.getItemCount();
+                    cartCount.textContent = count;
+                    cartCount.style.display = count > 0 ? 'block' : 'none';
+                }
+            }
+
+            static navigate(page) {
+                window.location.hash = page;
+                this.render();
+            }
+
+            static renderLoginPage() {
+                document.getElementById('appContent').innerHTML = `
+                    <div class="auth-container">
+                        <h1 class="auth-title">Login</h1>
+                        <div id="authMessage"></div>
+                        <form id="loginForm">
+                            <div class="form-group">
+                                <label class="form-label" for="email">Email</label>
+                                <input type="email" id="email" class="form-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="password">Password</label>
+                                <input type="password" id="password" class="form-input" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Login</button>
+                        </form>
+                        <div class="auth-footer">
+                            Don't have an account? <a href="#register" onclick="App.renderRegisterPage()">Register</a>
+                        </div>
+                        <div style="margin-top: 1.5rem; padding: 1rem; background: #f3f4f6; border-radius: 8px; font-size: 0.875rem;">
+                            <strong>Demo Credentials:</strong><br>
+                            Admin: admin@shop.com / admin123<br>
+                            Customer: customer@shop.com / customer123
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('loginForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const email = document.getElementById('email').value;
+                    const password = document.getElementById('password').value;
+                    const result = Auth.login(email, password);
+                    
+                    if (result.success) {
+                        App.render();
+                    } else {
+                        document.getElementById('authMessage').innerHTML = `
+                            <div class="message message-error">${result.message}</div>
+                        `;
+                    }
+                });
+            }
+
+            static renderRegisterPage() {
+                document.getElementById('appContent').innerHTML = `
+                    <div class="auth-container">
+                        <h1 class="auth-title">Register</h1>
+                        <div id="authMessage"></div>
+                        <form id="registerForm">
+                            <div class="form-group">
+                                <label class="form-label" for="name">Full Name</label>
+                                <input type="text" id="name" class="form-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="email">Email</label>
+                                <input type="email" id="email" class="form-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="password">Password</label>
+                                <input type="password" id="password" class="form-input" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Register</button>
+                        </form>
+                        <div class="auth-footer">
+                            Already have an account? <a href="#login" onclick="App.renderLoginPage()">Login</a>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('registerForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const name = document.getElementById('name').value;
+                    const email = document.getElementById('email').value;
+                    const password = document.getElementById('password').value;
+                    const result = Auth.register(email, password, name);
+                    
+                    if (result.success) {
+                        document.getElementById('authMessage').innerHTML = `
+                            <div class="message message-success">Registration successful! Please login.</div>
+                        `;
+                        setTimeout(() => App.renderLoginPage(), 2000);
+                    } else {
+                        document.getElementById('authMessage').innerHTML = `
+                            <div class="message message-error">${result.message}</div>
+                        `;
+                    }
+                });
+            }
+
+            static renderCustomerPage(page) {
+                switch(page) {
+                    case 'cart':
+                        this.renderCart();
+                        break;
+                    case 'orders':
+                        this.renderCustomerOrders();
+                        break;
+                    default:
+                        this.renderProducts();
+                }
+            }
+
+            static renderProducts() {
+                const productsHTML = DB.products.map(product => `
+                    <div class="product-card">
+                        <div class="product-image">${product.icon}</div>
+                        <div class="product-body">
+                            <h3 class="product-name">${product.name}</h3>
+                            <p class="product-description">${product.description}</p>
+                            <div class="product-footer">
+                                <span class="product-price">$${product.price.toFixed(2)}</span>
+                                <span class="product-stock">Stock: ${product.stock}</span>
+                            </div>
+                            <button class="btn btn-success btn-sm" style="width: 100%; margin-top: 1rem;" 
+                                    onclick="App.addToCart(${product.id})" 
+                                    ${product.stock === 0 ? 'disabled' : ''}>
+                                ${product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+
+                document.getElementById('appContent').innerHTML = `
+                    <div class="container">
+                        <div class="products-header">
+                            <h1 class="section-title">Products</h1>
+                        </div>
+                        <div class="products-grid">
+                            ${productsHTML}
+                        </div>
+                    </div>
+                `;
+            }
+
+            static addToCart(productId) {
+                const result = Cart.addToCart(productId);
+                if (result.success) {
+                    alert('Product added to cart!');
+                }
+            }
+
+            static renderCart() {
+                const cart = Cart.getCart();
+                
+                if (cart.length === 0) {
+                    document.getElementById('appContent').innerHTML = `
+                        <div class="container">
+                            <h1 class="section-title">Shopping Cart</h1>
+                            <div class="empty-state">
+                                <div class="empty-state-icon">🛒</div>
+                                <h2>Your cart is empty</h2>
+                                <p>Add some products to get started!</p>
+                                <button class="btn btn-primary" onclick="App.navigate('products')">Browse Products</button>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const cartItemsHTML = cart.map(item => {
+                    const product = DB.products.find(p => p.id === item.productId);
+                    if (!product) return '';
+                    
+                    return `
+                        <div class="cart-item">
+                            <div class="cart-item-image">${product.icon}</div>
+                            <div class="cart-item-details">
+                                <h3 class="cart-item-name">${product.name}</h3>
+                                <p class="cart-item-price">$${product.price.toFixed(2)} each</p>
+                            </div>
+                            <div class="cart-item-actions">
+                                <div class="quantity-controls">
+                                    <button class="quantity-btn" onclick="App.updateCartQuantity(${product.id}, ${item.quantity - 1})">-</button>
+                                    <span class="quantity-display">${item.quantity}</span>
+                                    <button class="quantity-btn" onclick="App.updateCartQuantity(${product.id}, ${item.quantity + 1})">+</button>
+                                </div>
+                                <button class="btn btn-danger btn-sm" onclick="App.removeFromCart(${product.id})">Remove</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                const total = Cart.getTotal();
+
+                document.getElementById('appContent').innerHTML = `
+                    <div class="container">
+                        <h1 class="section-title">Shopping Cart</h1>
+                        <div class="cart-items">
+                            ${cartItemsHTML}
+                        </div>
+                        <div class="cart-summary">
+                            <div class="summary-row">
+                                <span>Subtotal</span>
+                                <span>$${total.toFixed(2)}</span>
+                            </div>
+                            <div class="summary-row">
+                                <span>Shipping</span>
+                                <span>$9.99</span>
+                            </div>
+                            <div class="summary-row">
+                                <span>Total</span>
+                                <span>$${(total + 9.99).toFixed(2)}</span>
+                            </div>
+                            <button class="btn btn-primary" style="width: 100%; margin-top: 1rem;" onclick="App.checkout()">
+                                Proceed to Checkout
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            static updateCartQuantity(productId, quantity) {
+                Cart.updateQuantity(productId, quantity);
+                this.renderCart();
+            }
+
+            static removeFromCart(productId) {
+                if (confirm('Remove this item from cart?')) {
+                    Cart.removeFromCart(productId);
+                    this.renderCart();
+                }
+            }
+
+            static checkout() {
+                const user = Auth.getCurrentUser();
+                const cart = Cart.getCart();
+                const total = Cart.getTotal() + 9.99;
+
+                const orderItems = cart.map(item => {
+                    const product = DB.products.find(p => p.id === item.productId);
+                    return {
+                        productId: item.productId,
+                        quantity: item.quantity,
+                        price: product.price
+                    };
+                });
+
+                const order = {
+                    id: DB.nextOrderId++,
+                    userId: user.id,
+                    items: orderItems,
+                    total: total,
+                    status: 'pending',
+                    date: new Date().toISOString().split('T')[0]
+                };
+
+                DB.orders.push(order);
+                Cart.clearCart();
+                
+                alert('Order placed successfully!');
+                this.navigate('orders');
+            }
+
+            static renderCustomerOrders() {
+                const user = Auth.getCurrentUser();
+                const orders = DB.orders.filter(o => o.userId === user.id);
+
+                if (orders.length === 0) {
+                    document.getElementById('appContent').innerHTML = `
+                        <div class="container">
+                            <h1 class="section-title">My Orders</h1>
+                            <div class="empty-state">
+                                <div class="empty-state-icon">📦</div>
+                                <h2>No orders yet</h2>
+                                <p>Start shopping to see your orders here!</p>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const ordersHTML = orders.map(order => {
+                    const itemsHTML = order.items.map(item => {
+                        const product = DB.products.find(p => p.id === item.productId);
+                        return `<li>${product.name} x${item.quantity} - $${(item.price * item.quantity).toFixed(2)}</li>`;
+                    }).join('');
+
+                    return `
+                        <div class="admin-section">
+                            <h3>Order #${order.id} - ${order.date}</h3>
+                            <p><span class="status-badge status-${order.status}">${order.status.toUpperCase()}</span></p>
+                            <ul style="margin: 1rem 0;">${itemsHTML}</ul>
+                            <p><strong>Total: $${order.total.toFixed(2)}</strong></p>
+                        </div>
+                    `;
+                }).join('');
+
+                document.getElementById('appContent').innerHTML = `
+                    <div class="container">
+                        <h1 class="section-title">My Orders</h1>
+                        ${ordersHTML}
+                    </div>
+                `;
+            }
+
+            static renderAdminDashboard() {
+                const totalProducts = DB.products.length;
+                const totalOrders = DB.orders.length;
+                const totalRevenue = DB.orders.reduce((sum, order) => sum + order.total, 0);
+                const totalUsers = DB.users.filter(u => u.role === 'customer').length;
+
+                document.getElementById('appContent').innerHTML = `
+                    <div class="container">
+                        <h1 class="section-title">Admin Dashboard</h1>
+                        <div class="admin-grid">
+                            <div class="stat-card">
+                                <div class="stat-label">Total Products</div>
+                                <div class="stat-value">${totalProducts}</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Total Orders</div>
+                                <div class="stat-value">${totalOrders}</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Total Revenue</div>
+                                <div class="stat-value">$${totalRevenue.toFixed(2)}</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Total Customers</div>
+                                <div class="stat-value">${totalUsers}</div>
+                            </div>
+                        </div>
+
+                        <div class="admin-section">
+                            <h2 class="section-title">Recent Orders</h2>
+                            <div class="table-container">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Order ID</th>
+                                            <th>Customer</th>
+                                            <th>Date</th>
+                                            <th>Total</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${DB.orders.map(order => {
+                                            const user = DB.users.find(u => u.id === order.userId);
+                                            return `
+                                                <tr>
+                                                    <td>#${order.id}</td>
+                                                    <td>${user.name}</td>
+                                                    <td>${order.date}</td>
+                                                    <td>$${order.total.toFixed(2)}</td>
+                                                    <td><span class="status-badge status-${order.status}">${order.status.toUpperCase()}</span></td>
+                                                    <td>
+                                                        <select class="form-select" onchange="App.updateOrderStatus(${order.id}, this.value)" style="width: auto; padding: 0.5rem;">
+                                                            <option value="pending" ${order.status === 'pending' ? 'selected' : ''}>Pending</option>
+                                                            <option value="processing" ${order.status === 'processing' ? 'selected' : ''}>Processing</option>
+                                                            <option value="completed" ${order.status === 'completed' ? 'selected' : ''}>Completed</option>
+                                                            <option value="cancelled" ${order.status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
+                                                        </select>
+                                                    </td>
+                                                </tr>
+                                            `;
+                                        }).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            static updateOrderStatus(orderId, newStatus) {
+                const order = DB.orders.find(o => o.id === orderId);
+                if (order) {
+                    order.status = newStatus;
+                    this.render();
+                }
+            }
+        }
+
+        // Initialize app - ensure it runs after DOM is ready
+        function initializeApp() {
+            console.log('Initializing app...');
+            App.init();
+        }
+
+        // Handle browser back/forward
+        window.addEventListener('hashchange', () => {
+            App.render();
+        });
+
+        // Multiple initialization strategies to ensure app loads
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeApp);
+        } else {
+            // DOM already loaded, initialize immediately
+            setTimeout(initializeApp, 0);
+        }
+
+        // Fallback initialization
+        window.addEventListener('load', () => {
+            if (!document.getElementById('appContent').innerHTML) {
+                initializeApp();
+            }
+        });
+    </script>
+</body>
+</html>
+
