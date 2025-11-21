@@ -1,894 +1,317 @@
-# BACKEND MODULE - ShopHub E-Commerce Platform
+# modules/admin/routes.py - Admin Module Backend
 
-This module contains all JavaScript logic, state management, and business functionality.
+from flask import Blueprint, render_template, request, jsonify, session
+from werkzeug.security import check_password_hash
+from database.db import db
+from bson import ObjectId
+from config import Config
 
-## File: app.js (Complete Backend Logic)
+# Create admin blueprint
+admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
-```javascript
-// ============================================
-// DATA LAYER - Database Simulation
-// ============================================
+# ============================================
+# ADMIN AUTHENTICATION
+# ============================================
 
-class Database {
-    constructor() {
-        this.users = this.loadFromStorage('users') || this.getDefaultUsers();
-        this.products = this.loadFromStorage('products') || this.getDefaultProducts();
-        this.orders = this.loadFromStorage('orders') || [];
-        this.currentUser = this.loadFromStorage('currentUser') || null;
-        this.cart = this.loadFromStorage('cart') || [];
-    }
+@admin_bp.route('/')
+def index():
+    """Admin login page"""
+    return render_template('admin/login.html')
 
-    // Storage methods
-    loadFromStorage(key) {
-        try {
-            const data = sessionStorage.getItem(key);
-            return data ? JSON.parse(data) : null;
-        } catch (error) {
-            console.error(`Error loading ${key}:`, error);
-            return null;
+
+@admin_bp.route('/login', methods=['POST'])
+def login():
+    """
+    Admin login with access code verification
+    Requires: access_code, email, password
+    """
+    data = request.json
+    
+    # Step 1: Verify admin access code (123)
+    if data.get('access_code') != Config.ADMIN_ACCESS_CODE:
+        return jsonify({'error': 'Invalid access code'}), 403
+    
+    # Step 2: Verify admin credentials
+    user = db.users.find_one({'email': data['email'], 'role': 'admin'})
+    
+    if not user or not check_password_hash(user['password'], data['password']):
+        return jsonify({'error': 'Invalid admin credentials'}), 401
+    
+    # Step 3: Create admin session
+    session['user_id'] = str(user['_id'])
+    session['role'] = 'admin'
+    
+    return jsonify({
+        'id': str(user['_id']),
+        'name': user['name'],
+        'email': user['email'],
+        'role': 'admin'
+    })
+
+
+@admin_bp.route('/logout', methods=['POST'])
+def logout():
+    """Admin logout - clear session"""
+    session.clear()
+    return jsonify({'message': 'Logged out'})
+
+
+# ============================================
+# ADMIN DASHBOARD
+# ============================================
+
+@admin_bp.route('/dashboard')
+def dashboard():
+    """Admin dashboard page (protected)"""
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return render_template('admin/login.html')
+    return render_template('admin/dashboard.html')
+
+
+@admin_bp.route('/stats', methods=['GET'])
+def get_stats():
+    """
+    Get dashboard statistics
+    Returns: product count, order count, total revenue
+    """
+    if session.get('role') != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    # Count products
+    product_count = db.products.count_documents({})
+    
+    # Count orders
+    order_count = db.orders.count_documents({})
+    
+    # Calculate total revenue
+    pipeline = [{'$group': {'_id': None, 'total': {'$sum': '$total'}}}]
+    revenue = list(db.orders.aggregate(pipeline))
+    total_revenue = revenue[0]['total'] if revenue else 0
+    
+    return jsonify({
+        'products': product_count,
+        'orders': order_count,
+        'revenue': total_revenue,
+        'users': db.users.count_documents({'role': 'user'})
+    })
+
+
+# ============================================
+# PRODUCT MANAGEMENT
+# ============================================
+
+@admin_bp.route('/products', methods=['GET', 'POST', 'DELETE'])
+def manage_products():
+    """
+    Manage products (CRUD operations)
+    GET: Get all products
+    POST: Add new product
+    DELETE: Delete product by ID
+    """
+    if session.get('role') != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    # ADD PRODUCT
+    if request.method == 'POST':
+        data = request.json
+        product = {
+            'name': data['name'],
+            'price': float(data['price']),
+            'category': data['category'],
+            'stock': int(data['stock']),
+            'description': data.get('description', ''),
+            'icon': data.get('icon', '📦')
         }
-    }
+        result = db.products.insert_one(product)
+        return jsonify({'message': 'Product added', 'id': str(result.inserted_id)})
+    
+    # DELETE PRODUCT
+    if request.method == 'DELETE':
+        product_id = request.args.get('id')
+        db.products.delete_one({'_id': ObjectId(product_id)})
+        return jsonify({'message': 'Product deleted'})
+    
+    # GET ALL PRODUCTS
+    products = list(db.products.find())
+    for p in products:
+        p['_id'] = str(p['_id'])
+    return jsonify(products)
 
-    saveToStorage(key, data) {
-        try {
-            sessionStorage.setItem(key, JSON.stringify(data));
-        } catch (error) {
-            console.error(`Error saving ${key}:`, error);
-        }
-    }
 
-    // Default data
-    getDefaultUsers() {
-        return [
-            {
-                id: 1,
-                name: 'Admin User',
-                email: 'admin@shop.com',
-                password: 'admin123',
-                role: 'admin'
-            },
-            {
-                id: 2,
-                name: 'Customer User',
-                email: 'customer@shop.com',
-                password: 'customer123',
-                role: 'customer'
+@admin_bp.route('/products/<product_id>', methods=['PUT'])
+def update_product(product_id):
+    """
+    Update product by ID
+    Requires: product_id in URL, product data in JSON
+    """
+    if session.get('role') != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    data = request.json
+    update_data = {
+        'name': data['name'],
+        'price': float(data['price']),
+        'category': data['category'],
+        'stock': int(data['stock']),
+        'description': data.get('description', ''),
+        'icon': data.get('icon', '📦')
+    }
+    
+    db.products.update_one(
+        {'_id': ObjectId(product_id)},
+        {'$set': update_data}
+    )
+    
+    return jsonify({'message': 'Product updated'})
+
+
+# ============================================
+# ORDER MANAGEMENT
+# ============================================
+
+@admin_bp.route('/orders', methods=['GET'])
+def get_orders():
+    """
+    Get all orders (admin only)
+    Returns: List of all orders with customer info
+    """
+    if session.get('role') != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    orders = list(db.orders.find().sort('created_at', -1))
+    
+    for order in orders:
+        order['_id'] = str(order['_id'])
+        # Get customer name
+        user = db.users.find_one({'_id': ObjectId(order['user_id'])})
+        order['customer_name'] = user['name'] if user else 'Unknown'
+    
+    return jsonify(orders)
+
+
+@admin_bp.route('/orders/<order_id>', methods=['PUT'])
+def update_order_status(order_id):
+    """
+    Update order status
+    Requires: order_id in URL, status in JSON
+    """
+    if session.get('role') != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    data = request.json
+    status = data.get('status')
+    
+    if status not in ['pending', 'processing', 'shipped', 'delivered', 'cancelled']:
+        return jsonify({'error': 'Invalid status'}), 400
+    
+    db.orders.update_one(
+        {'_id': ObjectId(order_id)},
+        {'$set': {'status': status}}
+    )
+    
+    return jsonify({'message': 'Order status updated'})
+
+
+# ============================================
+# USER MANAGEMENT
+# ============================================
+
+@admin_bp.route('/users', methods=['GET'])
+def get_users():
+    """
+    Get all users (admin only)
+    Returns: List of all users (excluding passwords)
+    """
+    if session.get('role') != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    users = list(db.users.find({'role': 'user'}, {'password': 0}))
+    
+    for user in users:
+        user['_id'] = str(user['_id'])
+    
+    return jsonify(users)
+
+
+@admin_bp.route('/users/<user_id>', methods=['DELETE'])
+def delete_user(user_id):
+    """
+    Delete user account
+    Requires: user_id in URL
+    """
+    if session.get('role') != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    # Don't allow deleting admin accounts
+    user = db.users.find_one({'_id': ObjectId(user_id)})
+    if user and user['role'] == 'admin':
+        return jsonify({'error': 'Cannot delete admin account'}), 403
+    
+    db.users.delete_one({'_id': ObjectId(user_id)})
+    return jsonify({'message': 'User deleted'})
+
+
+# ============================================
+# ANALYTICS
+# ============================================
+
+@admin_bp.route('/analytics/revenue', methods=['GET'])
+def get_revenue_analytics():
+    """
+    Get revenue analytics by date
+    Returns: Daily/Monthly revenue breakdown
+    """
+    if session.get('role') != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    # Get revenue by month
+    pipeline = [
+        {
+            '$group': {
+                '_id': {
+                    'year': {'$year': '$created_at'},
+                    'month': {'$month': '$created_at'}
+                },
+                'total': {'$sum': '$total'},
+                'count': {'$sum': 1}
             }
-        ];
-    }
+        },
+        {'$sort': {'_id': 1}}
+    ]
+    
+    revenue_data = list(db.orders.aggregate(pipeline))
+    
+    return jsonify(revenue_data)
 
-    getDefaultProducts() {
-        return [
-            {
-                id: 1,
-                name: 'Wireless Headphones',
-                description: 'Premium noise-cancelling wireless headphones',
-                price: 199.99,
-                stock: 15,
-                image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=300&fit=crop'
-            },
-            {
-                id: 2,
-                name: 'Smart Watch',
-                description: 'Feature-rich smartwatch with health tracking',
-                price: 299.99,
-                stock: 8,
-                image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=300&fit=crop'
-            },
-            {
-                id: 3,
-                name: 'Laptop Stand',
-                description: 'Ergonomic aluminum laptop stand',
-                price: 49.99,
-                stock: 25,
-                image: 'https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=400&h=300&fit=crop'
-            },
-            {
-                id: 4,
-                name: 'Mechanical Keyboard',
-                description: 'RGB backlit mechanical gaming keyboard',
-                price: 129.99,
-                stock: 12,
-                image: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=400&h=300&fit=crop'
-            },
-            {
-                id: 5,
-                name: 'Wireless Mouse',
-                description: 'Ergonomic wireless mouse with precision tracking',
-                price: 39.99,
-                stock: 30,
-                image: 'https://images.unsplash.com/photo-1527814050087-3793815479db?w=400&h=300&fit=crop'
-            },
-            {
-                id: 6,
-                name: 'USB-C Hub',
-                description: 'Multi-port USB-C hub with 4K HDMI output',
-                price: 79.99,
-                stock: 0,
-                image: 'https://images.unsplash.com/photo-1625948515291-69613efd103f?w=400&h=300&fit=crop'
-            },
-            {
-                id: 7,
-                name: 'Webcam HD',
-                description: '1080p HD webcam with auto-focus',
-                price: 89.99,
-                stock: 18,
-                image: 'https://images.unsplash.com/photo-1614624532983-4ce03382d63d?w=400&h=300&fit=crop'
-            },
-            {
-                id: 8,
-                name: 'Phone Stand',
-                description: 'Adjustable phone stand for desk',
-                price: 19.99,
-                stock: 3,
-                image: 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=400&h=300&fit=crop'
+
+@admin_bp.route('/analytics/top-products', methods=['GET'])
+def get_top_products():
+    """
+    Get top selling products
+    Returns: Products sorted by sales count
+    """
+    if session.get('role') != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    # Aggregate orders to find top products
+    pipeline = [
+        {'$unwind': '$items'},
+        {
+            '$group': {
+                '_id': '$items.id',
+                'name': {'$first': '$items.name'},
+                'total_sold': {'$sum': '$items.qty'},
+                'revenue': {'$sum': {'$multiply': ['$items.price', '$items.qty']}}
             }
-        ];
-    }
-
-    // User operations
-    registerUser(name, email, password) {
-        if (this.users.find(u => u.email === email)) {
-            throw new Error('Email already exists');
-        }
-        const newUser = {
-            id: this.users.length + 1,
-            name,
-            email,
-            password,
-            role: 'customer'
-        };
-        this.users.push(newUser);
-        this.saveToStorage('users', this.users);
-        return newUser;
-    }
-
-    loginUser(email, password) {
-        const user = this.users.find(u => u.email === email && u.password === password);
-        if (!user) {
-            throw new Error('Invalid email or password');
-        }
-        this.currentUser = user;
-        this.saveToStorage('currentUser', user);
-        return user;
-    }
-
-    logoutUser() {
-        this.currentUser = null;
-        this.cart = [];
-        sessionStorage.removeItem('currentUser');
-        sessionStorage.removeItem('cart');
-    }
-
-    getCurrentUser() {
-        return this.currentUser;
-    }
-
-    // Product operations
-    getProducts() {
-        return this.products;
-    }
-
-    getProductById(id) {
-        return this.products.find(p => p.id === id);
-    }
-
-    updateProductStock(productId, quantity) {
-        const product = this.getProductById(productId);
-        if (product) {
-            product.stock -= quantity;
-            this.saveToStorage('products', this.products);
-        }
-    }
-
-    // Cart operations
-    getCart() {
-        return this.cart;
-    }
-
-    addToCart(productId, quantity = 1) {
-        const product = this.getProductById(productId);
-        if (!product) {
-            throw new Error('Product not found');
-        }
-        if (product.stock < quantity) {
-            throw new Error('Insufficient stock');
-        }
-
-        const cartItem = this.cart.find(item => item.productId === productId);
-        if (cartItem) {
-            cartItem.quantity += quantity;
-        } else {
-            this.cart.push({ productId, quantity });
-        }
-        this.saveToStorage('cart', this.cart);
-    }
-
-    updateCartQuantity(productId, quantity) {
-        const cartItem = this.cart.find(item => item.productId === productId);
-        if (cartItem) {
-            if (quantity <= 0) {
-                this.removeFromCart(productId);
-            } else {
-                const product = this.getProductById(productId);
-                if (product.stock < quantity) {
-                    throw new Error('Insufficient stock');
-                }
-                cartItem.quantity = quantity;
-                this.saveToStorage('cart', this.cart);
-            }
-        }
-    }
-
-    removeFromCart(productId) {
-        this.cart = this.cart.filter(item => item.productId !== productId);
-        this.saveToStorage('cart', this.cart);
-    }
-
-    clearCart() {
-        this.cart = [];
-        this.saveToStorage('cart', this.cart);
-    }
-
-    getCartTotal() {
-        return this.cart.reduce((total, item) => {
-            const product = this.getProductById(item.productId);
-            return total + (product ? product.price * item.quantity : 0);
-        }, 0);
-    }
-
-    // Order operations
-    createOrder() {
-        if (!this.currentUser) {
-            throw new Error('User must be logged in');
-        }
-        if (this.cart.length === 0) {
-            throw new Error('Cart is empty');
-        }
-
-        const order = {
-            id: this.orders.length + 1,
-            userId: this.currentUser.id,
-            userName: this.currentUser.name,
-            items: this.cart.map(item => {
-                const product = this.getProductById(item.productId);
-                return {
-                    productId: item.productId,
-                    productName: product.name,
-                    quantity: item.quantity,
-                    price: product.price
-                };
-            }),
-            total: this.getCartTotal(),
-            status: 'pending',
-            date: new Date().toISOString()
-        };
-
-        // Update stock
-        this.cart.forEach(item => {
-            this.updateProductStock(item.productId, item.quantity);
-        });
-
-        this.orders.push(order);
-        this.saveToStorage('orders', this.orders);
-        this.clearCart();
-        return order;
-    }
-
-    getUserOrders(userId) {
-        return this.orders.filter(o => o.userId === userId);
-    }
-
-    getAllOrders() {
-        return this.orders;
-    }
-
-    updateOrderStatus(orderId, status) {
-        const order = this.orders.find(o => o.id === orderId);
-        if (order) {
-            order.status = status;
-            this.saveToStorage('orders', this.orders);
-        }
-    }
-
-    // Analytics
-    getStats() {
-        return {
-            totalProducts: this.products.length,
-            totalOrders: this.orders.length,
-            totalRevenue: this.orders.reduce((sum, order) => sum + order.total, 0),
-            totalCustomers: this.users.filter(u => u.role === 'customer').length
-        };
-    }
-}
-
-// ============================================
-// APPLICATION CONTROLLER
-// ============================================
-
-class App {
-    constructor() {
-        this.db = new Database();
-        this.currentView = 'login';
-        this.init();
-    }
-
-    init() {
-        this.setupEventListeners();
-        this.checkAuthAndRender();
-    }
-
-    setupEventListeners() {
-        // Navigation
-        document.getElementById('authBtn').addEventListener('click', () => {
-            if (this.db.getCurrentUser()) {
-                this.logout();
-            } else {
-                this.showLogin();
-            }
-        });
-
-        document.getElementById('cartBtn').addEventListener('click', () => {
-            this.showCart();
-        });
-    }
-
-    checkAuthAndRender() {
-        const user = this.db.getCurrentUser();
-        if (user) {
-            this.updateNavigation(user);
-            if (user.role === 'admin') {
-                this.showAdminDashboard();
-            } else {
-                this.showProducts();
-            }
-        } else {
-            this.showLogin();
-        }
-        this.updateCartBadge();
-    }
-
-    updateNavigation(user) {
-        const navLinks = document.getElementById('navLinks');
-        const authBtn = document.getElementById('authBtn');
-
-        if (user) {
-            authBtn.textContent = 'Logout';
-            if (user.role === 'admin') {
-                navLinks.innerHTML = `
-                    <a href="#" data-view="dashboard">Dashboard</a>
-                `;
-            } else {
-                navLinks.innerHTML = `
-                    <a href="#" data-view="products">Products</a>
-                    <a href="#" data-view="orders">My Orders</a>
-                `;
-            }
-
-            navLinks.querySelectorAll('a').forEach(link => {
-                link.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const view = e.target.dataset.view;
-                    this.navigateTo(view);
-                });
-            });
-        } else {
-            navLinks.innerHTML = '';
-            authBtn.textContent = 'Login';
-        }
-    }
-
-    navigateTo(view) {
-        switch(view) {
-            case 'products':
-                this.showProducts();
-                break;
-            case 'orders':
-                this.showOrders();
-                break;
-            case 'dashboard':
-                this.showAdminDashboard();
-                break;
-        }
-    }
-
-    updateCartBadge() {
-        const badge = document.getElementById('cartBadge');
-        const cart = this.db.getCart();
-        const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-        badge.textContent = itemCount;
-    }
-
-    // ============================================
-    // VIEW: LOGIN
-    // ============================================
-
-    showLogin() {
-        this.currentView = 'login';
-        const template = document.getElementById('loginTemplate');
-        const content = template.content.cloneNode(true);
-        
-        const mainContent = document.getElementById('mainContent');
-        mainContent.innerHTML = '';
-        mainContent.appendChild(content);
-
-        document.getElementById('loginForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.handleLogin();
-        });
-
-        document.getElementById('showRegister').addEventListener('click', (e) => {
-            e.preventDefault();
-            this.showRegister();
-        });
-    }
-
-    async handleLogin() {
-        const email = document.getElementById('loginEmail').value;
-        const password = document.getElementById('loginPassword').value;
-        const errorDiv = document.getElementById('loginError');
-
-        try {
-            const user = this.db.loginUser(email, password);
-            this.updateNavigation(user);
-            if (user.role === 'admin') {
-                this.showAdminDashboard();
-            } else {
-                this.showProducts();
-            }
-            this.updateCartBadge();
-        } catch (error) {
-            errorDiv.textContent = error.message;
-            errorDiv.classList.add('show');
-        }
-    }
-
-    // ============================================
-    // VIEW: REGISTER
-    // ============================================
-
-    showRegister() {
-        this.currentView = 'register';
-        const template = document.getElementById('registerTemplate');
-        const content = template.content.cloneNode(true);
-        
-        const mainContent = document.getElementById('mainContent');
-        mainContent.innerHTML = '';
-        mainContent.appendChild(content);
-
-        document.getElementById('registerForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.handleRegister();
-        });
-
-        document.getElementById('showLogin').addEventListener('click', (e) => {
-            e.preventDefault();
-            this.showLogin();
-        });
-    }
-
-    async handleRegister() {
-        const name = document.getElementById('regName').value;
-        const email = document.getElementById('regEmail').value;
-        const password = document.getElementById('regPassword').value;
-        const errorDiv = document.getElementById('registerError');
-
-        try {
-            this.db.registerUser(name, email, password);
-            this.db.loginUser(email, password);
-            this.updateNavigation(this.db.getCurrentUser());
-            this.showProducts();
-            this.updateCartBadge();
-        } catch (error) {
-            errorDiv.textContent = error.message;
-            errorDiv.classList.add('show');
-        }
-    }
-
-    // ============================================
-    // VIEW: PRODUCTS
-    // ============================================
-
-    showProducts() {
-        this.currentView = 'products';
-        const template = document.getElementById('productsTemplate');
-        const content = template.content.cloneNode(true);
-        
-        const mainContent = document.getElementById('mainContent');
-        mainContent.innerHTML = '';
-        mainContent.appendChild(content);
-
-        this.renderProducts();
-    }
-
-    renderProducts() {
-        const grid = document.getElementById('productsGrid');
-        const products = this.db.getProducts();
-
-        grid.innerHTML = products.map(product => `
-            <div class="product-card">
-                <img src="${product.image}" alt="${product.name}" class="product-image">
-                <div class="product-body">
-                    <h3 class="product-name">${product.name}</h3>
-                    <p class="product-description">${product.description}</p>
-                    <div class="product-footer">
-                        <span class="product-price">$${product.price.toFixed(2)}</span>
-                        <span class="product-stock ${this.getStockClass(product.stock)}">
-                            ${this.getStockText(product.stock)}
-                        </span>
-                    </div>
-                    <button class="btn btn--primary btn--full-width mt-16" 
-                            onclick="app.addToCart(${product.id})"
-                            ${product.stock === 0 ? 'disabled' : ''}>
-                        ${product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
-                    </button>
-                </div>
-            </div>
-        `).join('');
-    }
-
-    getStockClass(stock) {
-        if (stock === 0) return 'out-of-stock';
-        if (stock < 5) return 'low-stock';
-        return '';
-    }
-
-    getStockText(stock) {
-        if (stock === 0) return 'Out of Stock';
-        if (stock < 5) return `Only ${stock} left`;
-        return `${stock} in stock`;
-    }
-
-    addToCart(productId) {
-        try {
-            this.db.addToCart(productId, 1);
-            this.updateCartBadge();
-            this.showNotification('Product added to cart!');
-        } catch (error) {
-            this.showNotification(error.message, 'error');
-        }
-    }
-
-    // ============================================
-    // VIEW: CART
-    // ============================================
-
-    showCart() {
-        this.currentView = 'cart';
-        const template = document.getElementById('cartTemplate');
-        const content = template.content.cloneNode(true);
-        
-        const mainContent = document.getElementById('mainContent');
-        mainContent.innerHTML = '';
-        mainContent.appendChild(content);
-
-        this.renderCart();
-
-        document.getElementById('checkoutBtn').addEventListener('click', () => {
-            this.checkout();
-        });
-
-        document.getElementById('continueShopping').addEventListener('click', () => {
-            this.showProducts();
-        });
-    }
-
-    renderCart() {
-        const cartItemsDiv = document.getElementById('cartItems');
-        const cart = this.db.getCart();
-
-        if (cart.length === 0) {
-            cartItemsDiv.innerHTML = '<div class="empty-cart"><p>Your cart is empty</p></div>';
-            document.getElementById('checkoutBtn').disabled = true;
-        } else {
-            cartItemsDiv.innerHTML = cart.map(item => {
-                const product = this.db.getProductById(item.productId);
-                return `
-                    <div class="cart-item">
-                        <img src="${product.image}" alt="${product.name}" class="cart-item-image">
-                        <div class="cart-item-details">
-                            <h3 class="cart-item-name">${product.name}</h3>
-                            <p class="cart-item-price">$${product.price.toFixed(2)}</p>
-                            <div class="cart-item-controls">
-                                <div class="quantity-control">
-                                    <button class="quantity-btn" onclick="app.updateQuantity(${product.id}, ${item.quantity - 1})">-</button>
-                                    <span class="quantity-value">${item.quantity}</span>
-                                    <button class="quantity-btn" onclick="app.updateQuantity(${product.id}, ${item.quantity + 1})">+</button>
-                                </div>
-                                <button class="btn btn--outline btn--sm" onclick="app.removeFromCart(${product.id})">Remove</button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        this.updateCartTotals();
-    }
-
-    updateCartTotals() {
-        const total = this.db.getCartTotal();
-        document.getElementById('cartSubtotal').textContent = `$${total.toFixed(2)}`;
-        document.getElementById('cartTotal').textContent = `$${total.toFixed(2)}`;
-    }
-
-    updateQuantity(productId, newQuantity) {
-        try {
-            this.db.updateCartQuantity(productId, newQuantity);
-            this.renderCart();
-            this.updateCartBadge();
-        } catch (error) {
-            this.showNotification(error.message, 'error');
-        }
-    }
-
-    removeFromCart(productId) {
-        this.db.removeFromCart(productId);
-        this.renderCart();
-        this.updateCartBadge();
-    }
-
-    checkout() {
-        try {
-            const order = this.db.createOrder();
-            this.updateCartBadge();
-            this.showNotification('Order placed successfully!');
-            this.showOrders();
-        } catch (error) {
-            this.showNotification(error.message, 'error');
-        }
-    }
-
-    // ============================================
-    // VIEW: ORDERS
-    // ============================================
-
-    showOrders() {
-        this.currentView = 'orders';
-        const template = document.getElementById('ordersTemplate');
-        const content = template.content.cloneNode(true);
-        
-        const mainContent = document.getElementById('mainContent');
-        mainContent.innerHTML = '';
-        mainContent.appendChild(content);
-
-        this.renderOrders();
-    }
-
-    renderOrders() {
-        const ordersDiv = document.getElementById('ordersList');
-        const user = this.db.getCurrentUser();
-        const orders = this.db.getUserOrders(user.id);
-
-        if (orders.length === 0) {
-            ordersDiv.innerHTML = '<div class="empty-cart"><p>No orders yet</p></div>';
-        } else {
-            ordersDiv.innerHTML = orders.map(order => `
-                <div class="order-card">
-                    <div class="order-header">
-                        <div>
-                            <div class="order-id">Order #${order.id}</div>
-                            <div class="order-date">${new Date(order.date).toLocaleDateString()}</div>
-                        </div>
-                        <span class="order-status ${order.status}">${order.status.toUpperCase()}</span>
-                    </div>
-                    <div class="order-items">
-                        ${order.items.map(item => `
-                            <div class="order-item">
-                                <span>${item.productName} x ${item.quantity}</span>
-                                <span>$${(item.price * item.quantity).toFixed(2)}</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                    <div class="order-total">
-                        <span>Total:</span>
-                        <span>$${order.total.toFixed(2)}</span>
-                    </div>
-                </div>
-            `).join('');
-        }
-    }
-
-    // ============================================
-    // VIEW: ADMIN DASHBOARD
-    // ============================================
-
-    showAdminDashboard() {
-        this.currentView = 'dashboard';
-        const template = document.getElementById('adminDashboardTemplate');
-        const content = template.content.cloneNode(true);
-        
-        const mainContent = document.getElementById('mainContent');
-        mainContent.innerHTML = '';
-        mainContent.appendChild(content);
-
-        this.renderAdminStats();
-        this.renderAdminOrders();
-    }
-
-    renderAdminStats() {
-        const stats = this.db.getStats();
-        document.getElementById('totalProducts').textContent = stats.totalProducts;
-        document.getElementById('totalOrders').textContent = stats.totalOrders;
-        document.getElementById('totalRevenue').textContent = `$${stats.totalRevenue.toFixed(2)}`;
-        document.getElementById('totalCustomers').textContent = stats.totalCustomers;
-    }
-
-    renderAdminOrders() {
-        const ordersDiv = document.getElementById('adminOrdersList');
-        const orders = this.db.getAllOrders();
-
-        if (orders.length === 0) {
-            ordersDiv.innerHTML = '<p class="text-center">No orders yet</p>';
-        } else {
-            ordersDiv.innerHTML = orders.map(order => `
-                <div class="admin-order-item">
-                    <div class="admin-order-info">
-                        <div class="admin-order-customer">${order.userName}</div>
-                        <div class="admin-order-details">
-                            Order #${order.id} • ${new Date(order.date).toLocaleDateString()} • $${order.total.toFixed(2)}
-                        </div>
-                    </div>
-                    <div class="admin-order-actions">
-                        <span class="order-status ${order.status}">${order.status.toUpperCase()}</span>
-                        ${order.status === 'pending' ? `
-                            <button class="btn btn--sm btn--primary" onclick="app.updateOrderStatus(${order.id}, 'processing')">Process</button>
-                        ` : ''}
-                        ${order.status === 'processing' ? `
-                            <button class="btn btn--sm btn--primary" onclick="app.updateOrderStatus(${order.id}, 'completed')">Complete</button>
-                        ` : ''}
-                    </div>
-                </div>
-            `).join('');
-        }
-    }
-
-    updateOrderStatus(orderId, status) {
-        this.db.updateOrderStatus(orderId, status);
-        this.renderAdminOrders();
-        this.showNotification('Order status updated!');
-    }
-
-    // ============================================
-    // UTILITIES
-    // ============================================
-
-    logout() {
-        this.db.logoutUser();
-        this.updateNavigation(null);
-        this.updateCartBadge();
-        this.showLogin();
-    }
-
-    showNotification(message, type = 'success') {
-        // Simple console notification - can be enhanced with toast UI
-        console.log(`[${type.toUpperCase()}] ${message}`);
-        alert(message);
-    }
-}
-
-// ============================================
-// INITIALIZE APPLICATION
-// ============================================
-
-let app;
-
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        app = new App();
-    });
-} else {
-    app = new App();
-}
-```
-
-## Backend Architecture
-
-### 1. Database Layer (`Database` class)
-- **Storage Management**: SessionStorage-based persistence
-- **User Management**: Authentication, registration, session handling
-- **Product Management**: CRUD operations for products
-- **Cart Management**: Add, update, remove cart items
-- **Order Management**: Create orders, track status, order history
-- **Analytics**: Calculate business metrics
-
-### 2. Application Controller (`App` class)
-- **View Management**: Handle all UI rendering
-- **Navigation**: Route between different views
-- **Event Handling**: Manage user interactions
-- **State Management**: Sync UI with data layer
-
-### 3. Key Features
-- **Role-Based Access Control**: Different views for admin vs customer
-- **Session Persistence**: Data survives page refreshes
-- **Real-time Updates**: Cart badge, stock levels update instantly
-- **Error Handling**: User-friendly error messages
-- **Security**: Password validation, input sanitization
-
-### 4. Data Flow
-```
-User Action → Event Handler → Database Method → State Update → UI Render
-```
-
-## Usage Instructions
-
-1. Save this file as `app.js`
-2. Ensure it's linked in your HTML: `<script src="app.js"></script>`
-3. The application initializes automatically on page load
-4. All state is managed in sessionStorage
-
-## API Reference
-
-### Database Methods
-```javascript
-// User operations
-db.registerUser(name, email, password)
-db.loginUser(email, password)
-db.logoutUser()
-db.getCurrentUser()
-
-// Product operations
-db.getProducts()
-db.getProductById(id)
-db.updateProductStock(productId, quantity)
-
-// Cart operations
-db.addToCart(productId, quantity)
-db.updateCartQuantity(productId, quantity)
-db.removeFromCart(productId)
-db.clearCart()
-db.getCartTotal()
-
-// Order operations
-db.createOrder()
-db.getUserOrders(userId)
-db.getAllOrders()
-db.updateOrderStatus(orderId, status)
-
-// Analytics
-db.getStats()
-```
-
-### App Methods
-```javascript
-// Navigation
-app.showLogin()
-app.showRegister()
-app.showProducts()
-app.showCart()
-app.showOrders()
-app.showAdminDashboard()
-
-// Actions
-app.addToCart(productId)
-app.updateQuantity(productId, newQuantity)
-app.removeFromCart(productId)
-app.checkout()
-app.updateOrderStatus(orderId, status)
-app.logout()
-```
-
-## Features Implemented
-
-✅ User authentication and registration
-✅ Role-based access control (admin/customer)
-✅ Product browsing with stock management
-✅ Shopping cart with quantity management
-✅ Order placement and tracking
-✅ Admin dashboard with analytics
-✅ Order status management
-✅ Session persistence
-✅ Real-time UI updates
-✅ Error handling and validation
-
-## Security Notes
-
-⚠️ This is a client-side demo implementation. For production:
-- Move authentication to server-side
-- Use proper password hashing (bcrypt)
-- Implement JWT tokens for sessions
-- Add CSRF protection
-- Sanitize all inputs server-side
-- Use HTTPS for all requests
-- Implement rate limiting
-- Add input validation on backend
+        },
+        {'$sort': {'total_sold': -1}},
+        {'$limit': 10}
+    ]
+    
+    top_products = list(db.orders.aggregate(pipeline))
+    
+    return jsonify(top_products)
+
+
+# Export blueprint
+__all__ = ['admin_bp']
