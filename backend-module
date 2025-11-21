@@ -1,4 +1,4 @@
-# modules/admin/routes.py - Admin Module Backend
+ #modules/admin/routes.py - Admin Module Backend (Minimal)
 
 from flask import Blueprint, render_template, request, jsonify, session
 from werkzeug.security import check_password_hash
@@ -6,84 +6,57 @@ from database.db import db
 from bson import ObjectId
 from config import Config
 
-# Create admin blueprint
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
 # ============================================
-# ADMIN AUTHENTICATION
+# AUTHENTICATION
 # ============================================
 
 @admin_bp.route('/')
 def index():
-    """Admin login page"""
     return render_template('admin/login.html')
-
 
 @admin_bp.route('/login', methods=['POST'])
 def login():
-    """
-    Admin login with access code verification
-    Requires: access_code, email, password
-    """
     data = request.json
     
-    # Step 1: Verify admin access code (123)
+    # Verify access code
     if data.get('access_code') != Config.ADMIN_ACCESS_CODE:
         return jsonify({'error': 'Invalid access code'}), 403
     
-    # Step 2: Verify admin credentials
+    # Verify credentials
     user = db.users.find_one({'email': data['email'], 'role': 'admin'})
-    
     if not user or not check_password_hash(user['password'], data['password']):
-        return jsonify({'error': 'Invalid admin credentials'}), 401
+        return jsonify({'error': 'Invalid credentials'}), 401
     
-    # Step 3: Create admin session
     session['user_id'] = str(user['_id'])
     session['role'] = 'admin'
     
-    return jsonify({
-        'id': str(user['_id']),
-        'name': user['name'],
-        'email': user['email'],
-        'role': 'admin'
-    })
-
+    return jsonify({'id': str(user['_id']), 'name': user['name'], 'role': 'admin'})
 
 @admin_bp.route('/logout', methods=['POST'])
 def logout():
-    """Admin logout - clear session"""
     session.clear()
     return jsonify({'message': 'Logged out'})
 
-
 # ============================================
-# ADMIN DASHBOARD
+# DASHBOARD
 # ============================================
 
 @admin_bp.route('/dashboard')
 def dashboard():
-    """Admin dashboard page (protected)"""
     if 'user_id' not in session or session.get('role') != 'admin':
         return render_template('admin/login.html')
     return render_template('admin/dashboard.html')
 
-
 @admin_bp.route('/stats', methods=['GET'])
 def get_stats():
-    """
-    Get dashboard statistics
-    Returns: product count, order count, total revenue
-    """
     if session.get('role') != 'admin':
         return jsonify({'error': 'Unauthorized'}), 403
     
-    # Count products
     product_count = db.products.count_documents({})
-    
-    # Count orders
     order_count = db.orders.count_documents({})
     
-    # Calculate total revenue
     pipeline = [{'$group': {'_id': None, 'total': {'$sum': '$total'}}}]
     revenue = list(db.orders.aggregate(pipeline))
     total_revenue = revenue[0]['total'] if revenue else 0
@@ -91,27 +64,18 @@ def get_stats():
     return jsonify({
         'products': product_count,
         'orders': order_count,
-        'revenue': total_revenue,
-        'users': db.users.count_documents({'role': 'user'})
+        'revenue': total_revenue
     })
 
-
 # ============================================
-# PRODUCT MANAGEMENT
+# PRODUCTS
 # ============================================
 
 @admin_bp.route('/products', methods=['GET', 'POST', 'DELETE'])
 def manage_products():
-    """
-    Manage products (CRUD operations)
-    GET: Get all products
-    POST: Add new product
-    DELETE: Delete product by ID
-    """
     if session.get('role') != 'admin':
         return jsonify({'error': 'Unauthorized'}), 403
     
-    # ADD PRODUCT
     if request.method == 'POST':
         data = request.json
         product = {
@@ -125,193 +89,31 @@ def manage_products():
         result = db.products.insert_one(product)
         return jsonify({'message': 'Product added', 'id': str(result.inserted_id)})
     
-    # DELETE PRODUCT
     if request.method == 'DELETE':
         product_id = request.args.get('id')
         db.products.delete_one({'_id': ObjectId(product_id)})
         return jsonify({'message': 'Product deleted'})
     
-    # GET ALL PRODUCTS
     products = list(db.products.find())
     for p in products:
         p['_id'] = str(p['_id'])
     return jsonify(products)
 
-
-@admin_bp.route('/products/<product_id>', methods=['PUT'])
-def update_product(product_id):
-    """
-    Update product by ID
-    Requires: product_id in URL, product data in JSON
-    """
-    if session.get('role') != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
-    
-    data = request.json
-    update_data = {
-        'name': data['name'],
-        'price': float(data['price']),
-        'category': data['category'],
-        'stock': int(data['stock']),
-        'description': data.get('description', ''),
-        'icon': data.get('icon', '📦')
-    }
-    
-    db.products.update_one(
-        {'_id': ObjectId(product_id)},
-        {'$set': update_data}
-    )
-    
-    return jsonify({'message': 'Product updated'})
-
-
 # ============================================
-# ORDER MANAGEMENT
+# ORDERS
 # ============================================
 
 @admin_bp.route('/orders', methods=['GET'])
 def get_orders():
-    """
-    Get all orders (admin only)
-    Returns: List of all orders with customer info
-    """
     if session.get('role') != 'admin':
         return jsonify({'error': 'Unauthorized'}), 403
     
     orders = list(db.orders.find().sort('created_at', -1))
-    
     for order in orders:
         order['_id'] = str(order['_id'])
-        # Get customer name
         user = db.users.find_one({'_id': ObjectId(order['user_id'])})
         order['customer_name'] = user['name'] if user else 'Unknown'
     
     return jsonify(orders)
 
-
-@admin_bp.route('/orders/<order_id>', methods=['PUT'])
-def update_order_status(order_id):
-    """
-    Update order status
-    Requires: order_id in URL, status in JSON
-    """
-    if session.get('role') != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
-    
-    data = request.json
-    status = data.get('status')
-    
-    if status not in ['pending', 'processing', 'shipped', 'delivered', 'cancelled']:
-        return jsonify({'error': 'Invalid status'}), 400
-    
-    db.orders.update_one(
-        {'_id': ObjectId(order_id)},
-        {'$set': {'status': status}}
-    )
-    
-    return jsonify({'message': 'Order status updated'})
-
-
-# ============================================
-# USER MANAGEMENT
-# ============================================
-
-@admin_bp.route('/users', methods=['GET'])
-def get_users():
-    """
-    Get all users (admin only)
-    Returns: List of all users (excluding passwords)
-    """
-    if session.get('role') != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
-    
-    users = list(db.users.find({'role': 'user'}, {'password': 0}))
-    
-    for user in users:
-        user['_id'] = str(user['_id'])
-    
-    return jsonify(users)
-
-
-@admin_bp.route('/users/<user_id>', methods=['DELETE'])
-def delete_user(user_id):
-    """
-    Delete user account
-    Requires: user_id in URL
-    """
-    if session.get('role') != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
-    
-    # Don't allow deleting admin accounts
-    user = db.users.find_one({'_id': ObjectId(user_id)})
-    if user and user['role'] == 'admin':
-        return jsonify({'error': 'Cannot delete admin account'}), 403
-    
-    db.users.delete_one({'_id': ObjectId(user_id)})
-    return jsonify({'message': 'User deleted'})
-
-
-# ============================================
-# ANALYTICS
-# ============================================
-
-@admin_bp.route('/analytics/revenue', methods=['GET'])
-def get_revenue_analytics():
-    """
-    Get revenue analytics by date
-    Returns: Daily/Monthly revenue breakdown
-    """
-    if session.get('role') != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
-    
-    # Get revenue by month
-    pipeline = [
-        {
-            '$group': {
-                '_id': {
-                    'year': {'$year': '$created_at'},
-                    'month': {'$month': '$created_at'}
-                },
-                'total': {'$sum': '$total'},
-                'count': {'$sum': 1}
-            }
-        },
-        {'$sort': {'_id': 1}}
-    ]
-    
-    revenue_data = list(db.orders.aggregate(pipeline))
-    
-    return jsonify(revenue_data)
-
-
-@admin_bp.route('/analytics/top-products', methods=['GET'])
-def get_top_products():
-    """
-    Get top selling products
-    Returns: Products sorted by sales count
-    """
-    if session.get('role') != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
-    
-    # Aggregate orders to find top products
-    pipeline = [
-        {'$unwind': '$items'},
-        {
-            '$group': {
-                '_id': '$items.id',
-                'name': {'$first': '$items.name'},
-                'total_sold': {'$sum': '$items.qty'},
-                'revenue': {'$sum': {'$multiply': ['$items.price', '$items.qty']}}
-            }
-        },
-        {'$sort': {'total_sold': -1}},
-        {'$limit': 10}
-    ]
-    
-    top_products = list(db.orders.aggregate(pipeline))
-    
-    return jsonify(top_products)
-
-
-# Export blueprint
 __all__ = ['admin_bp']
